@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>YouTube ROI Calculator</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Hanken+Grotesk:wght@400;500;600;700&display=swap">
+<style>
+html{color-scheme:light}
+body{margin:0}
+img{max-width:100%}
+[hidden]{display:none!important}
+/* Layout: inputs on the left in the page's own ground, one dark results panel on the right that stays put while the sliders move. */
+:root {
+  --bg: #F6F3EE;
+  --surface: #FDFCFA;
+  --line: #E0D6C6;
+  --sand: #EAE0D0;
+  --fg: #0C121E;
+  --muted: #586070;
+  --accent: #2A3853;
+  --accent-fg: #F6F3EE;
+  --panel-bg: #0C121E;
+  --panel-line: #263146;
+  --panel-fg: #F6F3EE;
+  --panel-muted: #A9B0BF;
+  --amber: #FAAE67;
+  --sage: #C1D9A8;
+  --neg: #F29A88;
+  --display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+  --body: "Hanken Grotesk", "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0C121E; --surface: #131B2A; --line: #263146; --sand: #1B2638;
+    --fg: #F6F3EE; --muted: #A9B0BF; --accent: #FAAE67; --accent-fg: #0C121E;
+    --panel-bg: #18233A; --panel-line: #2F3D58; --panel-fg: #F6F3EE; --panel-muted: #A9B0BF;
+    --amber: #FAAE67; --sage: #C1D9A8; --neg: #F29A88;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0C121E; --surface: #131B2A; --line: #263146; --sand: #1B2638;
+  --fg: #F6F3EE; --muted: #A9B0BF; --accent: #FAAE67; --accent-fg: #0C121E;
+  --panel-bg: #18233A; --panel-line: #2F3D58; --panel-fg: #F6F3EE; --panel-muted: #A9B0BF;
+  --amber: #FAAE67; --sage: #C1D9A8; --neg: #F29A88;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.5;
+}
+.wrap {
+  max-width: 1160px;
+  margin: 0 auto;
+  padding-block: 28px 120px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.mark {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+h1 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(2.1rem, 5vw, 3.4rem);
+  line-height: 1.05;
+  margin: 8px 0 10px;
+  text-wrap: balance;
+}
+.lede { color: var(--muted); max-width: 60ch; margin: 0; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (min-width: 940px) {
+  .grid { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); gap: 32px; }
+  .results { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); }
+  .wrap { padding-block: 40px 56px; }
+}
+
+/* Inputs */
+.inputs { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+.group { display: flex; flex-direction: column; gap: 16px; }
+.group + .group { border-top: 1px solid var(--line); padding-top: 22px; }
+.group h2 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: 1.5rem;
+  line-height: 1.15;
+  margin: 0;
+}
+.field { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; row-gap: 6px; align-items: end; }
+.field label { font-weight: 600; font-size: 0.95rem; }
+.field .hint { display: block; font-weight: 400; font-size: 0.82rem; color: var(--muted); }
+.num {
+  display: flex; align-items: center; gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0 10px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.num span { color: var(--muted); font-weight: 500; }
+.num input {
+  width: 6.2ch; border: 0; background: transparent; color: var(--fg);
+  font: inherit; text-align: right; padding: 8px 0; outline: none;
+  -moz-appearance: textfield; appearance: textfield;
+}
+.num.wide input { width: 8ch; }
+.num input::-webkit-outer-spin-button, .num input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.num:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.field input[type="range"] { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); margin: 0; height: 24px; }
+.field input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+.seg { display: inline-flex; background: var(--sand); border-radius: 10px; padding: 3px; gap: 3px; max-width: 100%; }
+.seg button {
+  font: inherit; font-size: 0.9rem; font-weight: 600;
+  border: 0; border-radius: 8px; padding: 8px 14px; cursor: pointer;
+  background: transparent; color: var(--muted);
+}
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-fg); }
+.seg button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.reset {
+  align-self: flex-start; font: inherit; font-size: 0.88rem; font-weight: 600;
+  background: transparent; color: var(--muted); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 14px; cursor: pointer;
+}
+.reset:hover { color: var(--fg); }
+.reset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Results panel */
+.results {
+  background: var(--panel-bg);
+  color: var(--panel-fg);
+  border-radius: 18px;
+  padding: clamp(18px, 3vw, 30px);
+  display: flex; flex-direction: column; gap: 22px;
+  min-width: 0;
+}
+.results .seg { background: var(--panel-line); align-self: flex-start; }
+.results .seg button { color: var(--panel-muted); }
+.results .seg button[aria-pressed="true"] { background: var(--amber); color: #0C121E; }
+.results .seg button:focus-visible { outline-color: var(--amber); }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--panel-muted); margin: 0; }
+.big {
+  font-family: var(--display);
+  font-size: clamp(3rem, 9vw, 5rem);
+  line-height: 1;
+  color: var(--amber);
+  font-variant-numeric: tabular-nums;
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+}
+.trio { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; border-top: 1px solid var(--panel-line); padding-top: 16px; }
+.trio div { min-width: 0; }
+.trio dt, .facts dt { font-size: 0.8rem; color: var(--panel-muted); }
+.trio dd { margin: 2px 0 0; font-size: clamp(1.05rem, 2.6vw, 1.4rem); font-weight: 700; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.pos { color: var(--sage); }
+.negv { color: var(--neg); }
+.per { margin: 0; color: var(--panel-muted); font-size: 0.95rem; }
+.per b { color: var(--panel-fg); }
+
+.h3 { font-family: var(--display); font-weight: 400; font-size: 1.35rem; margin: 0 0 10px; }
+.funnel { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.funnel li {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: baseline;
+  padding: 9px 0; border-top: 1px solid var(--panel-line);
+}
+.funnel .name { font-weight: 600; }
+.funnel .rate { grid-column: 1; font-size: 0.8rem; color: var(--panel-muted); }
+.funnel .val { grid-row: 1 / span 2; grid-column: 2; align-self: center; font-size: 1.25rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.funnel li.last .val { color: var(--amber); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.82rem; color: var(--panel-muted); margin: 0 0 6px; }
+.legend i { display: inline-block; width: 18px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.legend .l1 i { background: var(--amber); }
+.legend .l2 i { background: var(--panel-muted); }
+#chart { width: 100%; }
+#chart svg { display: block; width: 100%; height: auto; }
+
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 16px; margin: 0; border-top: 1px solid var(--panel-line); padding-top: 16px; }
+.facts dd { margin: 2px 0 0; font-weight: 700; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+
+.notes { color: var(--muted); font-size: 0.88rem; max-width: 75ch; }
+.notes h2 { font-family: var(--display); font-weight: 400; font-size: 1.35rem; color: var(--fg); margin: 0 0 8px; }
+.notes ul { margin: 0 0 10px; padding-left: 1.1em; }
+.notes p { margin: 0; }
+
+/* Phone: keep the headline numbers in view while the sliders move */
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
+  background: var(--panel-bg); color: var(--panel-fg);
+  border-top: 1px solid var(--panel-line);
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+  padding-top: 10px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  font-variant-numeric: tabular-nums;
+}
+.bar small { display: block; font-size: 0.72rem; color: var(--panel-muted); letter-spacing: 0.06em; text-transform: uppercase; }
+.bar strong { font-size: 1.25rem; }
+.bar .r { text-align: right; }
+#barRev { color: var(--amber); }
+@media (min-width: 940px) { .bar { display: none; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="mark">Grey Matter Studio</div>
+    <h1>Your YouTube funnel, in numbers</h1>
+    <p class="lede">Set the sliders to match your offer and your sales team. The projection on the right updates as you move them.</p>
+  </header>
+
+  <div class="grid">
+    <section class="inputs" aria-label="Your numbers">
+      <div class="group">
+        <h2>Your offer</h2>
+        <div id="g-offer" class="group"></div>
+      </div>
+
+      <div class="group">
+        <h2>Your channel</h2>
+        <div class="seg" role="group" aria-label="Where to start the projection">
+          <button type="button" id="mode-views" data-mode="views" aria-pressed="true">Start from views</button>
+          <button type="button" id="mode-calls" data-mode="calls" aria-pressed="false">Start from booked calls</button>
+        </div>
+        <div id="g-views" class="group"></div>
+        <div id="g-calls" class="group" hidden></div>
+        <div id="g-build" class="group"></div>
+      </div>
+
+      <div class="group">
+        <h2>Your investment</h2>
+        <div id="g-invest" class="group"></div>
+      </div>
+
+      <button type="button" class="reset" id="reset">Reset to starting numbers</button>
+    </section>
+
+    <aside class="results" aria-live="polite">
+      <div class="seg" role="group" aria-label="Time period">
+        <button type="button" id="per-3" data-months="3" aria-pressed="false">First 90 days</button>
+        <button type="button" id="per-12" data-months="12" aria-pressed="true">12 months</button>
+      </div>
+
+      <div>
+        <p class="eyebrow" id="revLabel">Projected new revenue</p>
+        <p class="big" id="rev">$0</p>
+      </div>
+
+      <dl class="trio">
+        <div><dt>Investment</dt><dd id="inv">$0</dd></div>
+        <div><dt>Net return</dt><dd id="net">$0</dd></div>
+        <div><dt>ROI</dt><dd id="roi">0%</dd></div>
+      </dl>
+      <p class="per" id="perDollar"></p>
+
+      <div>
+        <h3 class="h3">How the money is made</h3>
+        <ol class="funnel" id="funnel"></ol>
+      </div>
+
+      <div>
+        <h3 class="h3">Revenue against investment</h3>
+        <p class="legend"><span class="l1"><i></i>Cumulative revenue</span><span class="l2"><i></i>Cumulative investment</span></p>
+        <div id="chart" role="img" aria-label="Cumulative revenue compared with cumulative investment by month"></div>
+      </div>
+
+      <dl class="facts">
+        <div><dt>Cost per booked call</dt><dd id="cpc">$0</dd></div>
+        <div><dt>Cost per new client</dt><dd id="cpa">$0</dd></div>
+        <div><dt>Clients needed to break even</dt><dd id="be">0</dd></div>
+        <div><dt>Investment paid back by</dt><dd id="payback">Month 0</dd></div>
+      </dl>
+    </aside>
+  </div>
+
+  <section class="notes">
+    <h2>How this is worked out</h2>
+    <ul>
+      <li>Views each month are videos published times average views per video. Older videos keep getting watched, so each later month adds the monthly build on top of month one.</li>
+      <li>A lead is a viewer who opts in with name, email and phone. Leads are followed up by email, text and phone until they book.</li>
+      <li>Booked calls times show-up rate times close rate gives new clients. New clients times your offer price gives revenue.</li>
+      <li>Investment is charged at the start of each 90-day block. Revenue is counted in the month the views happen, so real cash will arrive a little later.</li>
+    </ul>
+    <p>This is a projection built from the numbers you enter. It is an estimate, and actual results depend on your offer, your market and your sales team.</p>
+  </section>
+</div>
+
+<div class="bar" aria-hidden="true">
+  <div><small id="barLabel">12-month revenue</small><strong id="barRev">$0</strong></div>
+  <div class="r"><small>ROI</small><strong id="barRoi">0%</strong></div>
+</div>
+
+<script>
+(function () {
+  var FIELDS = {
+    price:  { group: "g-offer",  label: "Price of your offer", hint: "What one new client pays you", min: 1000, max: 30000, step: 250, def: 5000, pre: "$", wide: true },
+    close:  { group: "g-offer",  label: "Close rate", hint: "Calls that happen and turn into a client", min: 5, max: 60, step: 1, def: 20, suf: "%" },
+    show:   { group: "g-offer",  label: "Show-up rate", hint: "Booked calls that actually happen", min: 30, max: 95, step: 1, def: 60, suf: "%" },
+    videos: { group: "g-views",  label: "Videos per month", hint: "Long-form videos published", min: 2, max: 8, step: 1, def: 4 },
+    views:  { group: "g-views",  label: "Views per video", hint: "Average in a video's first 30 days", min: 100, max: 20000, step: 100, def: 1000, wide: true },
+    optin:  { group: "g-views",  label: "Viewers who opt in", hint: "Give name, email and phone for your lead magnet", min: 0.2, max: 5, step: 0.1, def: 1.5, suf: "%" },
+    book:   { group: "g-views",  label: "Leads who book a call", hint: "After email, text and phone follow-up", min: 2, max: 40, step: 1, def: 10, suf: "%" },
+    calls:  { group: "g-calls",  label: "Booked calls per month", hint: "Qualified calls on the calendar in month one", min: 1, max: 60, step: 1, def: 7 },
+    build:  { group: "g-build",  label: "Monthly build", hint: "Extra volume each month from older videos, as a share of month one", min: 0, max: 40, step: 1, def: 15, suf: "%" },
+    fee:    { group: "g-invest", label: "Investment per 90 days", hint: "12 videos plus the full funnel", min: 2000, max: 30000, step: 500, def: 10500, pre: "$", wide: true }
+  };
+  var state = { mode: "views", months: 12 };
+  var $ = function (id) { return document.getElementById(id); };
+
+  Object.keys(FIELDS).forEach(function (k) {
+    var f = FIELDS[k];
+    state[k] = f.def;
+    var el = document.createElement("div");
+    el.className = "field";
+    el.innerHTML =
+      '<label for="n-' + k + '">' + f.label + '<span class="hint">' + f.hint + "</span></label>" +
+      '<div class="num' + (f.wide ? " wide" : "") + '">' + (f.pre ? "<span>" + f.pre + "</span>" : "") +
+      '<input id="n-' + k + '" type="number" inputmode="decimal" min="' + f.min + '" max="' + f.max + '" step="' + f.step + '" value="' + f.def + '">' +
+      (f.suf ? "<span>" + f.suf + "</span>" : "") + "</div>" +
+      '<input id="r-' + k + '" type="range" aria-label="' + f.label + '" min="' + f.min + '" max="' + f.max + '" step="' + f.step + '" value="' + f.def + '">';
+    $(f.group).appendChild(el);
+    var num = $("n-" + k), rng = $("r-" + k);
+    rng.addEventListener("input", function () { state[k] = parseFloat(rng.value); num.value = rng.value; render(); });
+    num.addEventListener("input", function () {
+      var v = parseFloat(num.value);
+      if (isNaN(v)) return;
+      v = Math.min(f.max, Math.max(f.min, v));
+      state[k] = v; rng.value = v; render();
+    });
+    num.addEventListener("blur", function () { num.value = state[k]; });
+  });
+
+  function setPressed(ids, activeId) {
+    ids.forEach(function (id) { $(id).setAttribute("aria-pressed", id === activeId ? "true" : "false"); });
+  }
+  ["mode-views", "mode-calls"].forEach(function (id) {
+    $(id).addEventListener("click", function () {
+      state.mode = $(id).dataset.mode;
+      setPressed(["mode-views", "mode-calls"], id);
+      $("g-views").hidden = state.mode !== "views";
+      $("g-calls").hidden = state.mode !== "calls";
+      render();
+    });
+  });
+  ["per-3", "per-12"].forEach(function (id) {
+    $(id).addEventListener("click", function () {
+      state.months = parseInt($(id).dataset.months, 10);
+      setPressed(["per-3", "per-12"], id);
+      render();
+    });
+  });
+  $("reset").addEventListener("click", function () {
+    Object.keys(FIELDS).forEach(function (k) {
+      state[k] = FIELDS[k].def; $("n-" + k).value = FIELDS[k].def; $("r-" + k).value = FIELDS[k].def;
+    });
+    render();
+  });
+
+  function project(s) {
+    var n = s.months, g = s.build / 100;
+    var t = { views: 0, leads: 0, calls: 0, shows: 0, clients: 0, revenue: 0 };
+    var cumRev = [0], cumFee = [s.fee], payback = null, rev = 0;
+    for (var m = 1; m <= n; m++) {
+      var lift = 1 + g * (m - 1);
+      var views = 0, leads = 0, calls;
+      if (s.mode === "views") {
+        views = s.videos * s.views * lift;
+        leads = views * s.optin / 100;
+        calls = leads * s.book / 100;
+      } else {
+        calls = s.calls * lift;
+      }
+      var shows = calls * s.show / 100;
+      var clients = shows * s.close / 100;
+      rev += clients * s.price;
+      t.views += views; t.leads += leads; t.calls += calls; t.shows += shows; t.clients += clients;
+      var fee = s.fee * Math.ceil(m / 3);
+      cumRev.push(rev); cumFee.push(fee);
+      if (payback === null && rev >= fee) payback = m;
+    }
+    t.revenue = rev;
+    t.investment = s.fee * Math.ceil(n / 3);
+    t.cumRev = cumRev; t.cumFee = cumFee; t.payback = payback;
+    return t;
+  }
+
+  var usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  var int = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
+  var one = new Intl.NumberFormat("en-US", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  function count(v) { return v < 100 ? one.format(v) : int.format(v); }
+  function short(v) {
+    if (v >= 1e6) return "$" + (v / 1e6).toFixed(v % 1e6 === 0 ? 0 : 1) + "m";
+    if (v >= 1e3) return "$" + (v / 1e3).toFixed(v % 1e3 === 0 ? 0 : 1) + "k";
+    return "$" + Math.round(v);
+  }
+
+  function funnelRow(name, rate, val, last) {
+    return '<li' + (last ? ' class="last"' : "") + '><span class="name">' + name + '</span><span class="rate">' + rate + '</span><span class="val">' + val + "</span></li>";
+  }
+
+  function drawChart(t) {
+    var box = $("chart"), W = Math.max(280, box.clientWidth || 560), H = 220;
+    var L = 46, R = 10, T = 10, B = 34, n = state.months;
+    var top = Math.max(t.cumRev[n], t.cumFee[n], 1);
+    var rough = top / 4, pow = Math.pow(10, Math.floor(Math.log10(rough))), q = rough / pow;
+    var stepv = (q <= 1 ? 1 : q <= 2 ? 2 : q <= 2.5 ? 2.5 : q <= 5 ? 5 : 10) * pow;
+    var max = Math.ceil(top / stepv) * stepv;
+    var x = function (m) { return L + (W - L - R) * m / n; };
+    var y = function (v) { return T + (H - T - B) * (1 - v / max); };
+    var s = '<svg viewBox="0 0 ' + W + " " + H + '" xmlns="http://www.w3.org/2000/svg" font-family="Hanken Grotesk, Arial, sans-serif" font-size="11">';
+    for (var v = 0; v <= max + 1e-6; v += stepv) {
+      s += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + y(v) + '" y2="' + y(v) + '" stroke="var(--panel-line)" stroke-width="1"/>';
+      s += '<text x="' + (L - 8) + '" y="' + (y(v) + 4) + '" text-anchor="end" fill="var(--panel-muted)">' + short(v) + "</text>";
+    }
+    for (var m = 1; m <= n; m++) {
+      s += '<text x="' + x(m) + '" y="' + (H - 16) + '" text-anchor="middle" fill="var(--panel-muted)">' + m + "</text>";
+    }
+    s += '<text x="' + (L + (W - L - R) / 2) + '" y="' + (H - 2) + '" text-anchor="middle" fill="var(--panel-muted)">Month</text>';
+    var area = "M" + x(0) + "," + y(0), line = "";
+    t.cumRev.forEach(function (r, i) {
+      area += " L" + x(i) + "," + y(r);
+      line += (i ? " L" : "M") + x(i) + "," + y(r);
+    });
+    area += " L" + x(n) + "," + y(0) + " Z";
+    s += '<path d="' + area + '" fill="var(--amber)" fill-opacity="0.14" stroke="none"/>';
+    var fee = "M" + x(0) + "," + y(t.cumFee[0]);
+    for (var k = 1; k <= n; k++) {
+      if (k < n && k % 3 === 0) fee += " H" + x(k) + " V" + y(t.cumFee[k + 1]);
+    }
+    fee += " H" + x(n);
+    s += '<path d="' + fee + '" fill="none" stroke="var(--panel-muted)" stroke-width="2" stroke-dasharray="5 4"/>';
+    s += '<path d="' + line + '" fill="none" stroke="var(--amber)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>';
+    s += '<circle cx="' + x(n) + '" cy="' + y(t.cumRev[n]) + '" r="4.5" fill="var(--amber)"/>';
+    box.innerHTML = s + "</svg>";
+  }
+
+  var last;
+  function render() {
+    var t = project(state);
+    last = t;
+    var net = t.revenue - t.investment;
+    var roi = t.investment ? net / t.investment : 0;
+    var long = state.months === 12;
+    $("revLabel").textContent = "Projected new revenue, " + (long ? "12 months" : "first 90 days");
+    $("rev").textContent = usd.format(t.revenue);
+    $("inv").textContent = usd.format(t.investment);
+    $("net").textContent = (net < 0 ? "-" : "+") + usd.format(Math.abs(net));
+    $("net").className = net < 0 ? "negv" : "pos";
+    $("roi").textContent = int.format(roi * 100) + "%";
+    $("roi").className = net < 0 ? "negv" : "pos";
+    $("perDollar").innerHTML = "For every $1 invested, <b>$" + (t.revenue / t.investment).toFixed(2) + "</b> comes back in new client revenue.";
+
+    var rows = "";
+    if (state.mode === "views") {
+      rows += funnelRow("Video views", state.videos + " videos a month, plus older videos still being watched", int.format(t.views));
+      rows += funnelRow("Leads on your list", state.optin + "% of viewers opt in", int.format(t.leads));
+      rows += funnelRow("Booked calls", state.book + "% of leads book", count(t.calls));
+    } else {
+      rows += funnelRow("Booked calls", state.calls + " in month one, building " + state.build + "% a month", count(t.calls));
+    }
+    rows += funnelRow("Calls that happen", state.show + "% show up", count(t.shows));
+    rows += funnelRow("New clients", state.close + "% close", count(t.clients));
+    rows += funnelRow("New revenue", usd.format(state.price) + " per client", usd.format(t.revenue), true);
+    $("funnel").innerHTML = rows;
+
+    $("cpc").textContent = t.calls ? usd.format(t.investment / t.calls) : "n/a";
+    $("cpa").textContent = t.clients ? usd.format(t.investment / t.clients) : "n/a";
+    $("be").textContent = int.format(Math.ceil(t.investment / state.price));
+    $("payback").textContent = t.payback ? "Month " + t.payback : "After this period";
+
+    $("barLabel").textContent = (long ? "12-month" : "90-day") + " revenue";
+    $("barRev").textContent = usd.format(t.revenue);
+    $("barRoi").textContent = int.format(roi * 100) + "%";
+    drawChart(t);
+  }
+
+  render();
+  if (window.ResizeObserver) new ResizeObserver(function () { if (last) drawChart(last); }).observe($("chart"));
+  else window.addEventListener("resize", function () { if (last) drawChart(last); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { if (last) drawChart(last); });
+})();
+</script>
+
+</body>
+</html>
